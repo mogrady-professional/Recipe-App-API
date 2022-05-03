@@ -45,7 +45,12 @@
   - [Adding Tests for Validation for email field](#adding-tests-for-validation-for-email-field)
 - [Add suppport for creating superusers](#add-suppport-for-creating-superusers)
     - [Add flake8](#add-flake8)
-    - [Commit to GitProject](#commit-to-gitproject)
+    - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests)
+- [Setup Django Admin](#setup-django-admin)
+  - [As with TDD -> Start by building the tests](#as-with-tdd---start-by-building-the-tests)
+  - [Final Change for the Custom Admin user model to work](#final-change-for-the-custom-admin-user-model-to-work)
+  - [Django Customization of the Admin complete](#django-customization-of-the-admin-complete)
+    - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests-1)
 
 TDD (Test Driven Development) is what seperates the good developers from the great ones.
 
@@ -948,9 +953,213 @@ Run tests
     - Comment out the code (import in the admin file)
       - Pass
 
-### Commit to GitProject
+### Commit to GitHub for Triggering Tests
 
 - `git add .`
 - `git commit -a
   - "Added custom user model"
     - :wq
+    - `git push origin`
+    - GitHub Actions will be Triggered and run tests emailing if there is any failures
+
+# Setup Django Admin
+
+To manage the custom user model. Giving a nice interface to login and see which users have been created, create users or make changes to existing users.
+
+## As with TDD -> Start by building the tests
+
+- Create new Unit Test
+  - `tests_admin.py` in `app/app/core/tests` directory
+
+A setUp function is a function that is ran before every test that you run. For example if they are setup tasks that need to be run for every test in the test case class.
+
+- Test Client
+- New user
+- Make sure user is logged into client
+- Create a regular user that is not authenticated or that can be used to list on admin page
+
+Test that the users are listed in the Django admin as we need to slightly customize the Django admin to work with our custom user model as the default user model expects a username and as such the default django admin for the user model also expects a username which we don't have username, we just have email address so a few small changes are required to the `admin.py` file to make sure it supports the custom user model.
+
+- Preform HTTP Get on the URL (from django docs)
+- Run assertions
+  - Checks for HTTP:200 and looks into the object and check for content
+
+`tests_admin.py`
+
+```py
+    def test_users_listed(self):
+        """Test that users are listed on user page"""
+        url = reverse('admin:core_user_changelist') # Generate url for user list page
+        res = self.client.get(url) # Get response from url
+
+        self.assertContains(res, self.user.name)
+        self.assertContains(res, self.user.email)
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Fail: as we have not created admin yet.
+
+Customize Django admin to list custom user model:
+`admin.py`
+
+```py
+from unittest.mock import Base
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+from core import models
+
+class UserAdmin(BaseUserAdmin):
+    ordering = ['id']
+    list_display = ['email', 'name']
+
+
+admin.site.register(models.User, UserAdmin)
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Pass
+
+Test that the change page renders correctly. It's not required to test dependencies of your project so don't need to test features that are specific to the frameworks or externam modules that you're using in you're project, Django is pretty robustly tested, we just need to make sure that the code you write is tested correctly.
+
+`admin.py`
+
+```py
+    def test_user_change_page(self):
+        """Test that the user edit page works"""
+        url = reverse('admin:core_user_change', args=[self.user.id])
+        # /admin/core/user/1
+        res = self.client.get(url) # HTTP:Get  on url -> response from url
+
+        self.assertEqual(res.status_code, 200) # Check if response is 200
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Fail -> expected
+    - Unknown fields
+      - Need to customize the user admin field sets to support our custom model as opposed to the default model it is expecting
+
+Add fieldsets class variable
+`admin.py`
+
+```py
+from unittest.mock import Base
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.translation import gettext as _ # Convert strings to human readable
+
+from core import models
+
+class UserAdmin(BaseUserAdmin):
+    ordering = ['id']
+    list_display = ['email', 'name']
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        (_('Personal Info'), {'fields': ('name',)}),
+        (
+            _('Permissions'),
+            {
+                'fields': (
+                    'is_active',
+                    'is_staff',
+                    'is_superuser',
+                )
+            }
+        ),
+        (_('Important dates'), {'fields': ('last_login',)}),
+    )
+
+
+admin.site.register(models.User, UserAdmin)
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Pass
+
+## Final Change for the Custom Admin user model to work
+
+- Add page
+
+Page for adding new users in the Django admin.
+
+`tests_admin.py`
+
+```py
+    def test_create_user_page(self):
+        """Test that the create user page works"""
+        url = reverse('admin:core_user_add')
+        res = self.client.get(url)
+
+        self.assertEqual(res.status_code, 200) # Check if response is 200
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Fail -> expected
+    - Username is not specified for user
+      - Go to admin.py and correct
+
+`admin.py`
+Add the add field sets class variable, from Django admin documentation
+
+```py
+from unittest.mock import Base
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.utils.translation import gettext as _ # Convert strings to human readable
+
+from core import models
+
+class UserAdmin(BaseUserAdmin):
+    ordering = ['id']
+    list_display = ['email', 'name']
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        (_('Personal Info'), {'fields': ('name',)}),
+        (
+            _('Permissions'),
+            {
+                'fields': (
+                    'is_active',
+                    'is_staff',
+                    'is_superuser',
+                )
+            }
+        ),
+        (_('Important dates'), {'fields': ('last_login',)}),
+    )
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2')
+        }),
+    )
+
+
+admin.site.register(models.User, UserAdmin)
+```
+
+Run tests
+
+- ` docker-compose run app sh -c "python manage.py test && flake8"`
+  - Pass
+
+## Django Customization of the Admin complete
+
+### Commit to GitHub for Triggering Tests
+
+- `git add .`
+- `git commit -a
+  - "Added custom user model"
+    - :wq
+    - `git push origin`
+    - GitHub Actions will be Triggered and run tests emailing if there is any failures
