@@ -29,6 +29,11 @@
   - [Build docker image](#build-docker-image)
   - [Creating a Docker Compose File - and configuration](#creating-a-docker-compose-file---and-configuration)
 - [Creating a Django Project using the Docker Configuration](#creating-a-django-project-using-the-docker-configuration)
+- [CI/CD Testing](#cicd-testing)
+  - [Option 1: Travis-CI](#option-1-travis-ci)
+  - [Setting up Travis-CI](#setting-up-travis-ci)
+  - [Create Travis-CI Configuration File](#create-travis-ci-configuration-file)
+  - [Option 2: GitHub Actions](#option-2-github-actions)
 
 TDD (Test Driven Development) is what seperates the good developers from the great ones.
 
@@ -349,3 +354,76 @@ Docker compose to run a command on the image that contains the Django dependency
   - This process runs on the docker container, and base it from the `WORKDIR` in the `Dockerfile`.
     - `docker-compose run app sh -c *django-admin.py startproject app .*`
     - or alternatively, run `docker-compose run app django-admin.py startproject app .`
+
+# CI/CD Testing
+
+## Option 1: Travis-CI
+
+Enable Travis-CI for a GitHub project. Travis is a really useful continuous integration tool that lets you automate tests and checks on your project everytime you push it to GitHub. For example, everytime you push a change to GitHub you can make it run **Python Unit Tests** and **Python Linting** so if there is any issues with your code you can see straight away via an email notification that the build is broken.
+
+## Setting up Travis-CI
+
+An easy process, [On the Travis-CI website, sign in with GitHub](https://travis-ci.com/), this will pull in all your GitHub projects and selectively enable with Travis.
+
+## Create Travis-CI Configuration File
+
+This is the file that tells Travis what to do every time you push a change to the project.
+
+- To create a Travis-CI Configuration file:
+  - Create a File in the root directory of the project called `.travis.yml`
+    - On the first line you tell Travis what language to expect our project to be in
+      - Version
+    - What services needed to use
+    - Specify a before script which is a script Travis will run before execute any of the automation commands
+    - Evertime you push a change to GitHub, Travis is going to spin up a python server running python 3.6 and make the docker service available, and use pip to install docker compose and then run script (flake8 is used as linting tool).
+      - If this exits with a failure, it will fail the build and send notification.
+
+```
+language: python
+python:
+    - "3.6"
+
+services:
+    - docker
+
+before_script: pip install docker-compose
+
+script:
+    - docker-compose run app sh -c "python manage.py test && flake8"
+
+```
+
+- Adding a flake8 config file
+  - Within the project `app` create a File called .flake8
+
+Directory structure
+
+```py
+app
+├── app
+|   ├── __init__.py
+|   ├── .flake8
+|   ├── settings.py
+|   ├── urls.py
+│   └── wsgi.py
+└── ...
+```
+
+Add exclusions: automated scripts and tools created by Django, as Django works to a 100 character limit, where as 79 character limit is recommended by Python guidelines. Doing this, you can exclude the Django limit so it does not fail on the linting.
+
+`.flake8`
+
+```
+[flake8]
+exclude =
+    migrations
+    __pycache__,
+    manage.py,
+    settings.py
+```
+
+Now you can push to GitHub and Travis-CI will begin the build.
+
+## Option 2: GitHub Actions
+
+This is the method used within this project as "Travis-CI no longer offers a free tier and we are working on a course update which uses GitHub Actions instead."
