@@ -117,6 +117,8 @@ PEP 8 – Style Guide for Python Code. The primary focus of PEP 8 is to improve 
 
 Practicing the [PEP-8 guidelines](https://peps.python.org/pep-0008/) makes you stand out amoungst other developers and future collegues appreciate it when reviewing and maintaining your code.
 
+Linting tool [Flake8](https://pypi.org/project/flake8/).
+
 ### Django
 
 - Django is used as the web framework that underpins the API.
@@ -283,10 +285,12 @@ Create `requirements.txt` file:
 
 1. Install Django
 2. Install djangorestframework
+3. Install flake8
 
 ```py
 Django>=2.1.3,<2.2.0
-djangorestframework>=3.9.0,<3.10.0>
+djangorestframework>=3.9.0,<3.10.0
+flake8>=3.6.0,<3.7.0
 ```
 
 Create directory called `app` which is required for docker file to build.
