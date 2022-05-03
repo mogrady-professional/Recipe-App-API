@@ -34,6 +34,8 @@
   - [Setting up Travis-CI](#setting-up-travis-ci)
   - [Create Travis-CI Configuration File](#create-travis-ci-configuration-file)
   - [Option 2: GitHub Actions](#option-2-github-actions)
+- [Test Driven Development (TDD)](#test-driven-development-tdd-1)
+  - [Unit Test](#unit-test)
 
 TDD (Test Driven Development) is what seperates the good developers from the great ones.
 
@@ -427,3 +429,64 @@ Now you can push to GitHub and Travis-CI will begin the build.
 ## Option 2: GitHub Actions
 
 This is the method used within this project as "Travis-CI no longer offers a free tier and we are working on a course update which uses GitHub Actions instead."
+
+1. Register on Docker Hub
+   1. If you don't already have one, head over to [hub.docker.com](https://hub.docker.com/) and register for a new free account.
+   2. Under Account Settings > Security, create a new Access Token.
+
+Under Account Settings > Security, create a new Access Token.
+
+- Access Token: `00400038-d5b8-47c2-9c88-4ffe219403e0`
+
+---
+
+To use the access token from your Docker CLI client:
+
+- Run docker login -u mogradyprof
+- At the password prompt, enter the personal access token.
+
+---
+
+2. Add credentials to your GitHub Repo
+
+- Open repo on GitHub, select Settings:
+  - Select Secrets > Actions:
+    - Choose New repository secret (top right):
+    - Add the following two secrets to the repo:
+      - `DOCKERHUB_USER` - Your Docker Hub username.
+      - `DOCKERHUB_TOKEN` - Access token created during step 1 above.
+      -
+
+3. Add the GitHub Actions configuration file
+
+- Create a new file at .github/workflows/build.yml and add the following contents:
+
+```
+---
+name: Checks
+
+on: [push]
+
+jobs:
+  test-lint:
+    name: Test and Lint
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Test
+        run: docker-compose up -d && docker-compose run --rm app sh -c "python manage.py test"
+      - name: Lint
+        run: docker-compose run --rm app sh -c "flake8"
+```
+
+4. Push the changes, and you should see the GitHub Actions job running under Actions on the repo page.
+
+# Test Driven Development (TDD)
+
+## Unit Test
