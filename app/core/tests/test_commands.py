@@ -1,8 +1,8 @@
-from unittest.mock import patch # for mocking the input() function
+from unittest.mock import patch
 
 from django.core.management import call_command
-from django.db.utils import OperationalError# Operational error simulate db being available
-from django.test import TestCase 
+from django.db.utils import OperationalError
+from django.test import TestCase
 
 
 class CommandTests(TestCase):
