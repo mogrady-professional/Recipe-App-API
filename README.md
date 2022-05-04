@@ -119,8 +119,8 @@ Both the following are used:
   - [Adding Tests for Normalized Email Feature](#adding-tests-for-normalized-email-feature)
   - [Adding Tests for Validation for email field](#adding-tests-for-validation-for-email-field)
 - [Add suppport for creating superusers](#add-suppport-for-creating-superusers)
-  - [Add flake8](#add-flake8)
-  - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests)
+    - [Add flake8](#add-flake8)
+    - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests)
 - [Setup Django Admin](#setup-django-admin)
   - [As with TDD -> Start by building the tests](#as-with-tdd---start-by-building-the-tests)
   - [Final Change for the Custom Admin user model to work](#final-change-for-the-custom-admin-user-model-to-work)
@@ -533,14 +533,14 @@ This is the method used within this project as "Travis-CI no longer offers a fre
 
 Under Account Settings > Security, create a new Access Token.
 
-- Access Token: `00400038-d5b8-47c2-9c88-4ffe219403e0`
+- Access Token: `<access_token>`
 
 ---
 
 To use the access token from your Docker CLI client:
 
-- Run docker login -u mogradyprof
-- At the password prompt, enter the personal access token.
+- Run docker login -u `<username>`
+- At the password prompt, enter the `<personal access token>`.
 
 ---
 
@@ -1431,8 +1431,8 @@ Add wait_for_db to command in docker-compose
 `docker-compose run app sh -c "python manage.py createsuperuser"`
 
 - http://127.0.0.1:8000/admin/
-- email: mogrady.personal@gmail.com
-- password: usual
+- email: `<email>`
+- password: `<password>`
 
 # Creating user management endpoints
 
