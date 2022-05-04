@@ -61,9 +61,16 @@ Manage Recipies
   - Upload Recipe Image
     - [http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image](http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image)
 
+---
+
 # Testing
 
-## Testing
+Both the following are used:
+
+- Travis-CI to automate testing and linting at each GitHub push
+- GitHub Actions to automate testing and linting at each GitHub push
+
+---
 
 # Table of Contents
 
@@ -72,7 +79,6 @@ Manage Recipies
 - [Routes](#routes)
 - [Features](#features)
 - [Testing](#testing)
-  - [Testing](#testing-1)
 - [Table of Contents](#table-of-contents)
 - [Project: Recipe API](#project-recipe-api)
   - [Technologies](#technologies)
