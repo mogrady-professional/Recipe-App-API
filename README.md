@@ -4,12 +4,74 @@
 
 > Building an API in Python using Test Driven Development.
 
+# Getting started
+
+To start project disable VPN during docker build and run:
+
+- `docker-compose build`
+- `docker-compose up`
+- Create superuser in Django
+  - `docker-compose run app sh -c "python manage.py createsuperuser"`
+- Log in to admin panel with credentials
+  - [http://127.0.0.1:8000](http://127.0.0.1:8000)
+  - Add ingredients, recipies etc
+- Use [ModHeader](https://modheader.com/) to send token within header when making requests
+
+# Routes
+
+```py
+# Manage users
+/api/user/create
+/api/user/token
+/api/user/me
+
+# Manage Recipies
+/api/recipe/tags
+/api/recipe/ingredients
+/api/recipe/recipe
+/api/recipe/recipe<id>/
+/api/recipe/recipe<id>/upload-image
+
+```
+
+# Features
+
+Manage users
+
+- Create User
+  - [http://127.0.0.1:8000/api/user/create/](http://127.0.0.1:8000/api/user/create/)
+- Create Token
+  - [http://127.0.0.1:8000/api/user/token/](http://127.0.0.1:8000/api/user/token/)
+- Manage User
+  - [http://127.0.0.1:8000/api/user/me/](http://127.0.0.1:8000/api/user/me/)
+
+Manage Recipies
+
+- Tag List
+  - [http://127.0.0.1:8000/api/recipe/tags/](http://127.0.0.1:8000/api/recipe/tags/)
+- Ingredients List
+  - [http://127.0.0.1:8000/api/recipe/ingredients/](http://127.0.0.1:8000/api/recipe/ingredients/)
+- Recipies
+  - [http://127.0.0.1:8000/api/recipe/recipe](http://127.0.0.1:8000/api/recipe/recipe)
+  - Recipe
+    - [http://127.0.0.1:8000/api/recipe/recipe\<id>/](http://127.0.0.1:8000/api/recipe/recipe<id>)
+  - Upload Recipe Image
+    - [http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image](http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image)
+
+---
+
+# Table of Contents
+
 - [Introduction](#introduction)
+- [Getting started](#getting-started)
+- [Routes](#routes)
+- [Features](#features)
+- [Table of Contents](#table-of-contents)
 - [Project: Recipe API](#project-recipe-api)
-  - [What You'll learn](#what-youll-learn)
+  - [Technologies](#technologies)
   - [End goal](#end-goal)
 - [Introduction](#introduction-1)
-  - [Technologies](#technologies)
+  - [Technologies](#technologies-1)
     - [Python](#python)
     - [PEP-8](#pep-8)
     - [Django](#django)
@@ -44,13 +106,23 @@
   - [Adding Tests for Normalized Email Feature](#adding-tests-for-normalized-email-feature)
   - [Adding Tests for Validation for email field](#adding-tests-for-validation-for-email-field)
 - [Add suppport for creating superusers](#add-suppport-for-creating-superusers)
-    - [Add flake8](#add-flake8)
-    - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests)
+  - [Add flake8](#add-flake8)
+  - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests)
 - [Setup Django Admin](#setup-django-admin)
   - [As with TDD -> Start by building the tests](#as-with-tdd---start-by-building-the-tests)
   - [Final Change for the Custom Admin user model to work](#final-change-for-the-custom-admin-user-model-to-work)
   - [Django Customization of the Admin complete](#django-customization-of-the-admin-complete)
     - [Commit to GitHub for Triggering Tests](#commit-to-github-for-triggering-tests-1)
+- [Setting up Database](#setting-up-database)
+  - [Configure Database in Django](#configure-database-in-django)
+- [Mocking with unit tests](#mocking-with-unit-tests)
+- [Add tests for wait_for_db command](#add-tests-for-wait_for_db-command)
+  - [Add wait_for_db command](#add-wait_for_db-command)
+- [View in Browser](#view-in-browser)
+  - [Create superuser](#create-superuser)
+- [Creating user management endpoints](#creating-user-management-endpoints)
+- [Serializers & Creating user API](#serializers--creating-user-api)
+  - [Run Unit Tests](#run-unit-tests)
 
 TDD (Test Driven Development) is what seperates the good developers from the great ones.
 
@@ -83,7 +155,7 @@ Virtual Recipe Box that you can use to organise your favourite recipes by:
 - Tags
 - Images
 
-## What You'll learn
+## Technologies
 
 - Python
 - Django
@@ -1163,3 +1235,440 @@ Run tests
     - :wq
     - `git push origin`
     - GitHub Actions will be Triggered and run tests emailing if there is any failures
+
+# Setting up Database
+
+Setting up PostgreSQL as the Database instead of the default sqllite database.
+
+- Start by making changes to docker compose file
+  - Create a new service called `db`
+    - Add postgres lightweight image
+    - Set up env variables
+    - Modify app service to set some environment variablesand depend on the db service
+    - Configure dockerfile to support the postgres client
+
+`docker-compose.yml`
+
+```
+version: "3"
+services:
+  app:
+    build:
+      context: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app:/app
+    command: >
+      sh -c "python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - DB_HOST=app
+      - DB_NAME=app
+      - DB_USER=postgres
+      - DB_PASS=postgres
+  db:
+    image: postgres:10-alpine
+    environment:
+      - POSTGRES_DB=app
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+
+```
+
+`requirements.txt`
+
+```
+Django>=2.1.3,<2.2.0
+djangorestframework>=3.9.0,<3.10.0
+psycopg2>=2.7.5,<2.8.0
+flake8>=3.6.0,<3.7.0
+```
+
+`Dockerfile`
+
+```
+FROM python:3.7-alpine
+LABEL maintainer="Michael O'Grady"
+
+ENV PYTHONUNBUFFERED 1
+
+# Install dependencies
+COPY ./requirements.txt /requirements.txt
+RUN apk add --update --no-cache postgresql-client
+RUN apk add --update --no-cache --virtual .tmp-build-deps \
+    gcc libc-dev linux-headers postgresql-dev
+
+RUN pip install -r /requirements.txt
+RUN apk del . tmp-build-deps
+
+RUN mkdir /app
+WORKDIR /app
+COPY ./app /app
+
+
+RUN adduser -D user
+USER user
+
+```
+
+- Make sure image will build successfully
+  - `docker-compose build`
+
+## Configure Database in Django
+
+- Configure the Django project to use postgresql
+- `settings.py`
+
+```py
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'HOST': os.environ.get('DB_HOST'),
+        'NAME': os.environ.get('DB_NAME'),
+        'USER': os.environ.get('DB_USER'),
+        'PASSWORD': os.environ.get('DB_PASS'),
+    }
+}
+```
+
+# Mocking with unit tests
+
+- Mocking is when you override or change the behavior of the dependencies of the code that you're testing. We use mocking to avoid any unintended side effects and also to isolate the specific piece of code that we want to test.
+
+For example imagine you're testing a function that sends an email. There are two good reasons that you wouldn't want to actually send an email every time you run your tests.
+
+- The first reason is that you should never write tests that depend on external services. This is because you can't guarantee that these services will be uvailable at the point that you run the test and this would make the test unpredictable and unreliable.
+- The second reason is you don't want to be sending spam emails each time you run your test suite even if you're using a fake address those emails would still be backing up on a server somewhere. When you write your test you can use mocking to avoid sending an actual email. You can override the function in the dependency that sends the email and replace it with a mock object. Using this mock object we can avoid sending an actual email and instead just check that the function was called with the correct parameters.
+
+# Add tests for wait_for_db command
+
+The management command is going to be a helper command that allows us to wait for the database to be available before continuing and running other commands.
+We're going to use this command in our docker compose file when starting our django app. The reason that we need this command is because I find that sometimes when using Postgres with docker compose in a django app sometimes the django app fails to start because of a database error. It turns out that this is because once the Postgres service has started there are a few extra setup tasks that need to be done on the Postgres before it is ready to accept connections. So what this means is our django app will try and connect to our database before the database is ready and therefore it will fail with an exception and you will need to restart the app. To improve the reliability of our project we're going to add this helper command that we can put in front of all of the commands we've run in docker compose and that will ensure that the database is up and ready to accept connections before we try and access the database. This will make our application a lot more reliable when running it locally as a development server and also if we ever deploy it as a production system.
+
+`test_commands.py`
+
+```py
+from unittest.mock import patch
+
+from django.core.management import call_command
+from django.db.utils import OperationalError
+from django.test import TestCase
+
+
+class CommandTests(TestCase):
+
+    def test_wait_for_db_ready(self):
+        """Test waiting for db when db is available"""
+        with patch('django.db.utils.ConnectionHandler.__getitem__') as gi:
+            gi.return_value = True
+            call_command('wait_for_db')
+            self.assertEqual(gi.call_count, 1)
+
+    @patch('time.sleep', return_value=True)
+    def test_wait_for_db(self, ts):
+        """Test waiting for db"""
+        with patch('django.db.utils.ConnectionHandler.__getitem__') as gi:
+            gi.side_effect = [OperationalError] * 5 + [True]
+            call_command('wait_for_db')
+            self.assertEqual(gi.call_count, 6)
+
+```
+
+- All we're going to check is that this get item was called once. So the way that you check that using this mock object is you type self.assertEqual gi.call_count, 1
+  So this return value in this call count these are all options that you can set on a mock object.
+
+- Okay so now we've added the first test we can add the second test and in this test we're going to check that the wait for db command will try the database five times and then on the sixth time it'll be successful and it will continue.
+
+## Add wait_for_db command
+
+So this is the django convention and it's recommended on the django website to put all of your commands in a directory called management and then forward slash commands so we're going to start by creating a folder called management and make sure that this is in the actual core app folder.
+
+`wait_for_db.py`
+
+```py
+import time
+
+from django.db import connections
+from django.db.utils import OperationalError
+from django.core.management.base import BaseCommand
+
+
+class Command(BaseCommand):
+    """Django command to pause execution until database is available"""
+
+    def handle(self, *args, **options):
+        self.stdout.write('Waiting for database...')
+        db_conn = None
+        while not db_conn:
+            try:
+                db_conn = connections['default']
+            except OperationalError:
+                self.stdout.write('Database unavailable, waiting 1 second...')
+                time.sleep(1)
+
+        self.stdout.write(self.style.SUCCESS('Database available!')) #
+```
+
+Add wait_for_db to command in docker-compose
+
+# View in Browser
+
+- docker-compose build
+- docker-compose up -> starts server
+
+## Create superuser
+
+`docker-compose run app sh -c "python manage.py createsuperuser"`
+
+- http://127.0.0.1:8000/admin/
+- email: mogrady.personal@gmail.com
+- password: usual
+
+# Creating user management endpoints
+
+In this section we're going to create our manage user endpoints.
+These endpoints are going to allow us to create users, to update users, to change a user's password and to create user authentication tokens which can be used to authenticate requests to the other APIs in our project.
+
+- Create new app `users`
+
+`docker-compose run --rm app sh -c "python manage.py startapp user"`
+removes the container after it's run the command
+
+- Cleanup, remove:
+
+  - Migrations
+  - admin.py
+  - models.py
+  - tests.py
+
+- Create new file tests
+- Add to settings, installed apps
+
+```py
+    'rest_framework',
+    'rest_framework.authtoken',
+    'core',
+    'user',
+```
+
+Okay so the first API that we're going to create in our users project is the create users API so we're going to start by adding some unit tests to test creating users and different scenarios when we give different post requests. Let's head over to our source code and open up our tests here and create a new file called test_user_api.py
+`test_user_api.py`
+
+```py
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+from django.urls import reverse
+
+from rest_framework.test import APIClient
+from rest_framework import status
+
+
+CREATE_USER_URL = reverse('user:create')
+TOKEN_URL = reverse('user:token')
+ME_URL = reverse('user:me')
+
+
+def create_user(**params):
+    return get_user_model().objects.create_user(**params)
+
+
+class PublicUserApiTests(TestCase):
+    """Test the users API (public)"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_create_valid_user_success(self):
+        """Test creating user with valid payload is successful"""
+        payload = {
+            'email': 'test@londonappdev.com',
+            'password': 'testpass',
+            'name': 'Test name'
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+        user = get_user_model().objects.get(**res.data)
+        self.assertTrue(user.check_password(payload['password']))
+        self.assertNotIn('password', res.data)
+
+    def test_user_exists(self):
+        """Test creatinga  user that already exists fails"""
+        payload = {
+            'email': 'test@londonappdev.com',
+            'password': 'testpass',
+            'name': 'Test',
+        }
+        create_user(**payload)
+
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_password_too_short(self):
+        """Test that the password must be more than 5 characters"""
+        payload = {
+            'email': 'test@londonappdev.com',
+            'password': 'pw',
+            'name': 'Test',
+        }
+        res = self.client.post(CREATE_USER_URL, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+        user_exists = get_user_model().objects.filter(
+            email=payload['email']
+        ).exists()
+        self.assertFalse(user_exists)
+
+    def test_create_token_for_user(self):
+        """Test that a token is created for the user"""
+        payload = {'email': 'test@londonappdev.com', 'password': 'testpass'}
+        create_user(**payload)
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_create_token_invalid_credentials(self):
+        """Test that token is not created if invalid credentials are given"""
+        create_user(email='test@londonappdev.com', password="testpass")
+        payload = {'email': 'test@londonappdev.com', 'password': 'wrong'}
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_token_no_user(self):
+        """Test that token is not created if user doesn't exist"""
+        payload = {'email': 'test@londonappdev.com', 'password': 'testpass'}
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_create_token_missing_field(self):
+        """Test that email and password are required"""
+        res = self.client.post(TOKEN_URL, {'email': 'one', 'password': ''})
+        self.assertNotIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_user_unauthorized(self):
+        """Test that authentication is required for users"""
+        res = self.client.get(ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateUserApiTests(TestCase):
+    """Test API requests that require authentication"""
+
+    def setUp(self):
+        self.user = create_user(
+            email='test@londonappdev.com',
+            password='testpass',
+            name='name'
+        )
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_retrieve_profile_success(self):
+        """Test retrieving profile for logged in used"""
+        res = self.client.get(ME_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, {
+            'name': self.user.name,
+            'email': self.user.email
+        })
+
+    def test_post_me_not_allowed(self):
+        """Test that POST is not allowed on the me url"""
+        res = self.client.post(ME_URL, {})
+
+        self.assertEqual(res.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def test_update_user_profile(self):
+        """Test updating the user profile for authenticated user"""
+        payload = {'name': 'new name', 'password': 'newpassword123'}
+
+        res = self.client.patch(ME_URL, payload)
+
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.name, payload['name'])
+        self.assertTrue(self.user.check_password(payload['password']))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+```
+
+# Serializers & Creating user API
+
+- Create urls and Settings
+- Authentication and tests for Create Token API
+
+Django rest framework has a built-in serializer that we can do this with that we just need to specify the fields that we want from our module and it does the database conversion for us. And even helps with the creating and retrieving from the database.
+
+```py
+from django.contrib.auth import get_user_model, authenticate
+from django.utils.translation import ugettext_lazy as _
+
+from rest_framework import serializers
+
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer for the users object"""
+
+    class Meta:
+        model = get_user_model()
+        fields = ('email', 'password', 'name')
+        extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
+
+    def create(self, validated_data):
+        """Create a new user with encrypted password and return it"""
+        return get_user_model().objects.create_user(**validated_data)
+
+    def update(self, instance, validated_data):
+        """Update a user, setting the password correctly and return it"""
+        password = validated_data.pop('password', None)
+        user = super().update(instance, validated_data)
+
+        if password:
+            user.set_password(password)
+            user.save()
+
+        return user
+
+
+class AuthTokenSerializer(serializers.Serializer):
+    """Serializer for the user authentication object"""
+    email = serializers.CharField()
+    password = serializers.CharField(
+        style={'input_type': 'password'},
+        trim_whitespace=False
+    )
+
+    def validate(self, attrs):
+        """Validate and authenticate the user"""
+        email = attrs.get('email')
+        password = attrs.get('password')
+
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email,
+            password=password
+        )
+        if not user:
+            msg = _('Unable to authenticate with provided credentials')
+            raise serializers.ValidationError(msg, code='authentication')
+
+        attrs['user'] = user
+        return attrs
+
+```
+
+## Run Unit Tests
+
+- `docker-compose run --rm app sh -c "python manage.py test && flake8"`
+- Create Token
+- `http://127.0.0.1:8000/api/user/token/`
+
+---
