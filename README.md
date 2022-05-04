@@ -1,4 +1,7 @@
-<h1 align="center">Python Django RestAPI Development with Docker and TDD (Test Driven Development) Reference</h1>
+<h1 align="center">Recipe-App-API</h1>
+<h1 align="center">Backend REST API with Python Django</h1>
+
+> Python Django RestAPI Development with Docker and TDD (Test Driven Development) Reference
 
 # Introduction
 
@@ -58,7 +61,9 @@ Manage Recipies
   - Upload Recipe Image
     - [http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image](http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image)
 
----
+# Testing
+
+## Testing
 
 # Table of Contents
 
@@ -66,6 +71,8 @@ Manage Recipies
 - [Getting started](#getting-started)
 - [Routes](#routes)
 - [Features](#features)
+- [Testing](#testing)
+  - [Testing](#testing-1)
 - [Table of Contents](#table-of-contents)
 - [Project: Recipe API](#project-recipe-api)
   - [Technologies](#technologies)
@@ -143,7 +150,6 @@ Going to create the following using Test Driven Development
   - Creating Objects
   - Filtering
   - Uploading Images
-  - More
 
 # Project: Recipe API
 
@@ -185,14 +191,12 @@ You will have a fully functional RestAPI that you can use as a foundation for fu
 
 # Introduction
 
-Main Features of an API which you'll learn:
+Main Features of an API:
 
 - User Authentication
 - Creating Objects
 - Listing/Filtering
 - Uploading Images
-
-After completion, you can build your on frontend. This is set at advanced level.
 
 ## Technologies
 
