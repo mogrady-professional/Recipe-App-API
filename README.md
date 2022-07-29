@@ -9,20 +9,176 @@
 
 # Getting started
 
-To start project disable VPN during docker build and run:
+To start project
 
-- `docker-compose build`
-- `docker-compose up`
-- Create superuser in Django
-  - `docker-compose run app sh -c "python manage.py createsuperuser"`
-- Log in to admin panel with credentials
-  - [http://127.0.0.1:8000](http://127.0.0.1:8000)
-  - Add ingredients, recipies etc
-- Use [ModHeader](https://modheader.com/) to send token within header when making requests
+1. disable VPN (during docker build)
+2. Start docker
+3. Run `docker build .` in the root directory `/` to build docker image
+4. Run `docker-compose up` to build container with image and **start the server**
+5. Run `docker-compose run app sh -c "python manage.py createsuperuser"` to create superuser in Django
+6. Log in to the Django admin panel with the superuser credentials [http://127.0.0.1:8000/admin](http://127.0.0.1:8000/admin)
+7. Add in sample data, i.e. ingredients, recipies, tags, users (as required) in the Django Admin Panel
+8. Optionally use [Postman](https://www.postman.com/) to send requests via routes below; set up routes in Postman for requests
+9. Optionally, use [ModHeader](https://modheader.com/) to send token within header when making requests in chrome browser
 
-# Routes
+# Accessing the Routes / API via Postman
+
+> Import the JSON file into Postman to save yourself the trouble of having to create the routes in Postman yourself.
+
+- **Attached Postman routes colection**
+  - `Recipe-App Python Django backend API.postman_collection.json`
+
+## Postman Setup instructions for non Authenticated Routes
+
+### Create User
+
+- Create user - POST - `http://127.0.0.1:8000/api/user/token/`
+  - Body - form-data
+    - key: `email`
+      - value: `your_email_goes_here`
+    - key: `password`
+      - value: `your_password_goes_here`
+    - key: `name`
+      - value: `your_name_goes_here`
+
+> Returns new user's email, name
+
+## Postman Setup instructions for Authenticated Routes
+
+> Firstly, get authenticated:
+
+### Get Token
+
+- Get token : **POST** - `http://127.0.0.1:8000/api/user/token/`
+  - Body
+    - form-data
+      - key: `email`
+        - value: `your_email_goes_here`
+      - key: `password`
+        - value: `your_password_goes_here`
+
+> Returns token
+
+1. Retrieve the token
+2. In subsequent requests, within `Headers` add:
+
+- Key: `Authorization`
+- Value: `token your_authorization_token_goes_here`
+
+4. You can now proceed to use the Authenticated routes below provided you add the following to each request in Postman
+
+- `token`
+
+### Authenticated routes
+
+#### Get User Details
+
+- Get user details : **GET** - `http://127.0.0.1:8000/api/user/me/`
+  - `Headers`
+    - key: `Authorization`
+      -value: `token your_token_goes_here`
+
+> returns user email, name
+
+#### Manage Recipies
+
+##### Tags
+
+- Get tags : **GET** - `http://127.0.0.1:8000/api/recipe/tags/`
+  - `Headers`
+    - key: `Authorization`
+      -value: `token your_token_goes_here`
+
+> returns tags
+
+- Create tag : **POST** - `http://127.0.0.1:8000/api/recipe/tags/`
+  - `Headers`
+    - key: `Authorization`
+      - value: `token your_token_goes_here`
+  - `Body`
+    - `form-data`
+      - `KEY`: `name`
+        - `VALUE` : `tagname_goes_here`
+
+> returns tag
+
+##### Ingredients
+
+- Get ingredients : **GET** - `http://127.0.0.1:8000/api/recipe/ingredients/`
+  - `Headers`
+    - key: `Authorization`
+      - value: `token your_token_goes_here`
+
+> returns ingredients
+
+- Create ingredient : **POST** - `http://127.0.0.1:8000/api/recipe/ingredients/`
+  - `Headers`
+    - key: `Authorization`
+      - value: `token your_token_goes_here`
+  - `Body`
+    - `form-data`
+      - `KEY`: `name`
+        - `VALUE` : `ingredient_goes_here`
+
+> returns ingredient
+
+##### Recipies
+
+- Get recipies : **GET** - `http://127.0.0.1:8000/api/recipe/recipes/`
+  - `Headers`
+    - key: `Authorization`
+      -value: `token your_token_goes_here`
+
+> returns recipies
+
+- Craete recipie : **POST** - `http://127.0.0.1:8000/api/recipe/recipes/`
+  - `Headers`
+    - key: `Authorization`
+      - value: `token your_token_goes_here`
+  - `Body`
+    - `form-data`
+      - `KEY`: `title`
+        - `VALUE` : `recipe_name_goes_here`
+      - `KEY`: `ingredients`
+        - `VALUE` : `ingredients_go_here`
+      - `KEY`: `tags`
+        - `VALUE` : `tags_go_here`
+      - `KEY`: `time_minutes`
+        - `VALUE` : `time_minutes_go_here`
+      - `KEY`: `price`
+        - `VALUE` : `price_goes_here`
+      - `KEY`: `link`
+        - `VALUE` : `link_goes_here`
+
+> returns recipies
+
+##### Recipe<id>
+
+- Get recipe : GET - `http://127.0.0.1:8000/api/recipe/recipes/1/`
+  - `Headers`
+    - key: `Authorization`
+      -value: `token your_token_goes_here`
+
+> returns recipe
+
+##### Recipe<id>upload-image
+
+- Post recipie image : **POST** - `http://127.0.0.1:8000/api/recipe/recipes/1/upload-image/`
+  - `Headers`
+    - key: `Authorization`
+      - value: `token your_token_goes_here`
+  - `Body`
+    - `form-data`
+      - `KEY`: `link`
+        - `VALUE` : `link_name_goes_here`
+
+> returns id, link
+
+---
 
 ```py
+# Routes
+
 # Manage users
 /api/user/create
 /api/user/token
@@ -34,12 +190,13 @@ To start project disable VPN during docker build and run:
 /api/recipe/recipe
 /api/recipe/recipe<id>/
 /api/recipe/recipe<id>/upload-image
-
 ```
 
-# Features
+# URL Routes
 
-Manage users
+> You can view the following routes in your browser to view the endpoints in the Django REST Framework:
+
+## Manage users
 
 - Create User
   - [http://127.0.0.1:8000/api/user/create/](http://127.0.0.1:8000/api/user/create/)
@@ -48,7 +205,7 @@ Manage users
 - Manage User
   - [http://127.0.0.1:8000/api/user/me/](http://127.0.0.1:8000/api/user/me/)
 
-Manage Recipies
+## Manage Recipies
 
 - Tag List
   - [http://127.0.0.1:8000/api/recipe/tags/](http://127.0.0.1:8000/api/recipe/tags/)
@@ -60,6 +217,11 @@ Manage Recipies
     - [http://127.0.0.1:8000/api/recipe/recipe\<id>/](http://127.0.0.1:8000/api/recipe/recipe<id>)
   - Upload Recipe Image
     - [http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image](http://127.0.0.1:8000/api/recipe/recipe%3Cid%3E/upload-image)
+
+# Finishing up
+
+- Stop the server using ctrl + c in the terminal
+- Remove the image and the container using Docker desktop GUI
 
 ---
 
@@ -76,8 +238,23 @@ Both the following are used:
 
 - [Introduction](#introduction)
 - [Getting started](#getting-started)
-- [Routes](#routes)
-- [Features](#features)
+- [Accessing the Routes / API via Postman](#accessing-the-routes--api-via-postman)
+  - [Postman Setup instructions for non Authenticated Routes](#postman-setup-instructions-for-non-authenticated-routes)
+    - [Create User](#create-user)
+  - [Postman Setup instructions for Authenticated Routes](#postman-setup-instructions-for-authenticated-routes)
+    - [Get Token](#get-token)
+    - [Authenticated routes](#authenticated-routes)
+      - [Get User Details](#get-user-details)
+      - [Manage Recipies](#manage-recipies)
+        - [Tags](#tags)
+        - [Ingredients](#ingredients)
+        - [Recipies](#recipies)
+        - [Recipe<id>](#recipeid)
+        - [Recipe<id>upload-image](#recipeidupload-image)
+- [URL Routes](#url-routes)
+  - [Manage users](#manage-users)
+  - [Manage Recipies](#manage-recipies-1)
+- [Finishing up](#finishing-up)
 - [Testing](#testing)
 - [Table of Contents](#table-of-contents)
 - [Project: Recipe API](#project-recipe-api)
